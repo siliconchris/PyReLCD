@@ -3,13 +3,14 @@
 __author__ = '@siliconchris'
 
 import RPi.GPIO as GPIO
-from time import sleep
+from time import sleep, time
 import argparse
+import sys
 
 
 class HD44780:
     def __init__(self, pin_rs=4, pin_e=17, pins_db=[18, 22, 23, 24]):
-        GPIO.cleanup()
+        """ Initialise GPIO """
         self.pin_rs=pin_rs
         self.pin_e=pin_e
         self.pins_db=pins_db
@@ -67,17 +68,36 @@ class HD44780:
             else:
                 self.cmd(ord(char),True)
 
-        GPIO.cleanup()
 
 if __name__ == '__main__':
     lcd = HD44780()
-    lcd.message("Raspberry Pi\n  Take a byte!")
 
-    parser = argparse.ArgumentParser(description='Write a message on an 16X2 LCD')
-    parser.add_argument('text', metavar='T', type=char, nargs='+', help='The text to display - max 16 characters. Use \n to separate two lines')
-    
+    parser = argparse.ArgumentParser(description='Write a message on a 16x2 LCD')
+    parser.add_argument('-t', '--text', action="store", dest="text",
+                        help='The text to display - max 16 characters. Use \\n to separate two lines')
+
+    parser.add_argument('-d', '--demonize', action='store_true', dest="demonize", default=False,
+                        help='Run in server mode. Starts a RESTful API at port 3033 (or whatever port given with --port) and waits for the text to display to be passed on the endpoint /write/')
+    parser.add_argument('-s', '--servermode', action='store_true', dest="demonize", default=False,
+                        help='Same as -d')
+
+    parser.add_argument('-i', '--interface', action="store", dest="interface",
+                        help='If run in server mode, you can provide a specific ip-address here. Standard is to listen on ALL interfaces')
+    parser.add_argument('-p', '--port', action="store", dest="port",
+                        help='The port to bind to for the REST API.')
+
     args = parser.parse_args()
-    print args.accumulate(args.text)
 
+    assert isinstance(args, object)
 
+    if not len(sys.argv) > 1:
+        parser.print_help()
+        sys.exit(-1)
 
+    if args.text:
+        writetext = args.text
+    else:
+        writetext = "Raspberry Pi\n  Take a byte!"
+
+    lcd.message(writetext)
+    GPIO.cleanup()
